@@ -119,13 +119,43 @@ async function getDirectoryHandle(
 }
 
 /**
+ * Determine if a file is an image based on its extension or MIME type
+ */
+function isImageFile(filename: string, mimeType: string): boolean {
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
+  const lowerFilename = filename.toLowerCase();
+  const hasImageExt = imageExtensions.some(ext => lowerFilename.endsWith(ext));
+  const hasImageMime = mimeType.startsWith('image/');
+  return hasImageExt || hasImageMime;
+}
+
+/**
  * Read a file's contents
  */
 export async function readFile(params: {
   path: string;
+  offset?: number;
+  limit?: number;
   encoding?: string;
-}): Promise<string> {
-  const { path } = params;
+}): Promise<{
+  content?: string;
+  attachment?: {
+    filename: string;
+    mimeType: string;
+    url: string;
+  };
+  metadata: {
+    path: string;
+    size: number;
+    lastModified: number;
+    mimeType: string;
+    isImage: boolean;
+    lineCount?: number;
+    offset?: number;
+    limit?: number;
+  };
+}> {
+  const { path, offset = 0, limit = 2000 } = params;
   // Note: encoding parameter is reserved for future use with different encodings
 
   const fileHandle = await getFileHandle(path);
@@ -134,7 +164,72 @@ export async function readFile(params: {
   }
 
   const file = await fileHandle.getFile();
-  return await file.text();
+  const filename = file.name;
+  const mimeType = file.type || 'application/octet-stream';
+  const size = file.size;
+  const lastModified = file.lastModified;
+
+  const isImage = isImageFile(filename, mimeType);
+
+  // Handle image files
+  if (isImage) {
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
+    );
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    return {
+      attachment: {
+        filename,
+        mimeType,
+        url: dataUrl,
+      },
+      metadata: {
+        path,
+        size,
+        lastModified,
+        mimeType,
+        isImage: true,
+      },
+    };
+  }
+
+  // Handle text files
+  const text = await file.text();
+  const lines = text.split('\n');
+  const totalLineCount = lines.length;
+
+  // Apply offset and limit
+  const startLine = Math.max(0, offset);
+  const endLine = Math.min(lines.length, startLine + limit);
+  const selectedLines = lines.slice(startLine, endLine);
+
+  // Format with line numbers (cat -n format) and truncate long lines
+  const formattedLines = selectedLines.map((line, index) => {
+    const lineNumber = startLine + index + 1; // Line numbers start at 1
+    const truncatedLine = line.length > 2000 ? line.substring(0, 2000) + '...[truncated]' : line;
+    return `${lineNumber.toString().padStart(6)}→${truncatedLine}`;
+  });
+
+  const content = formattedLines.join('\n');
+
+  return {
+    content,
+    metadata: {
+      path,
+      size,
+      lastModified,
+      mimeType,
+      isImage: false,
+      lineCount: totalLineCount,
+      offset: startLine,
+      limit: endLine - startLine,
+    },
+  };
 }
 
 /**
@@ -208,8 +303,14 @@ export async function editFile(params: {
 }): Promise<{ success: boolean; message: string; replacements: number }> {
   const { path, oldString, newString, replaceAll = false } = params;
 
-  // Read current content
-  const content = await readFile({ path });
+  // Read current content directly using filesystem APIs
+  const fileHandle = await getFileHandle(path);
+  if (!fileHandle) {
+    throw new Error(`File not found: ${path}`);
+  }
+
+  const file = await fileHandle.getFile();
+  const content = await file.text();
 
   // Perform replacement
   let newContent: string;

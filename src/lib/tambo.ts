@@ -100,17 +100,38 @@ export const tools: TamboTool[] = [
   {
     name: "readFile",
     description:
-      "Read the contents of a file from the local file system. Use virtual paths like /folder-name/path/to/file.txt. The path parameter is REQUIRED.",
+      "Reads a file from the local filesystem. You can access any file directly by using this tool. Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned. Use virtual paths like /folder-name/path/to/file.txt. The path parameter is REQUIRED. By default, reads up to 2000 lines starting from the beginning. You can optionally specify a line offset and limit (especially handy for long files), but it's recommended to read the whole file by not providing these parameters. Results are returned using cat -n format, with line numbers starting at 1. This tool can read image files - images are returned as attachments with data URLs.",
     tool: readFile,
     toolSchema: z
       .function()
       .args(
         z.object({
           path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
+          offset: z.number().optional().describe("Line number to start reading from (0-indexed, default: 0)"),
+          limit: z.number().optional().describe("Number of lines to read (default: 2000)"),
           encoding: z.string().optional().describe("File encoding (default: utf-8)"),
         }).strict(),
       )
-      .returns(z.string().describe("File contents as a string")),
+      .returns(
+        z.object({
+          content: z.string().optional().describe("File contents in cat -n format with line numbers. Lines longer than 2000 chars are truncated. Only present for text files."),
+          attachment: z.object({
+            filename: z.string(),
+            mimeType: z.string(),
+            url: z.string().describe("Data URL (data:image/png;base64,...)"),
+          }).optional().describe("For image files, contains the image as a base64 data URL"),
+          metadata: z.object({
+            path: z.string(),
+            size: z.number().describe("File size in bytes"),
+            lastModified: z.number().describe("Last modified timestamp"),
+            mimeType: z.string(),
+            isImage: z.boolean(),
+            lineCount: z.number().optional().describe("Total number of lines (text files only)"),
+            offset: z.number().optional().describe("Starting line number (text files only)"),
+            limit: z.number().optional().describe("Number of lines returned (text files only)"),
+          }),
+        })
+      ),
   },
   {
     name: "writeFile",
