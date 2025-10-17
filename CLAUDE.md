@@ -19,7 +19,7 @@ npm run build        # Build production bundle
 npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run lint:fix     # Run ESLint with auto-fix
-
+npm run check-types  # Run TypeScript compiler to check for type errors
 
 ## Architecture Overview
 

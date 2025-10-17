@@ -1,5 +1,6 @@
 "use client";
 
+import { FileSystemSidebar } from "@/components/file-system/file-system-sidebar";
 import { MessageThreadFull } from "@/components/tambo/message-thread-full";
 import { useMcpServers } from "@/components/tambo/mcp-config-modal";
 import { components, tools } from "@/lib/tambo";
@@ -11,19 +12,23 @@ export default function Home() {
   const mcpServers = useMcpServers();
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden relative">
-      <TamboProvider
-        apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-        components={components}
-        tools={tools}
-        tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
-      >
-        <TamboMcpProvider mcpServers={mcpServers}>
-          <div className="w-full max-w-4xl mx-auto">
-            <MessageThreadFull contextKey="tambo-template" />
+    <TamboProvider
+      apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
+      components={components}
+      tools={tools}
+      tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+    >
+      <TamboMcpProvider mcpServers={mcpServers}>
+        <div className="h-screen flex overflow-hidden relative">
+          {/* File System Sidebar */}
+          <FileSystemSidebar />
+
+          {/* Main Chat Area - Force thread history to right side with "right" class */}
+          <div className="flex-1 relative">
+            <MessageThreadFull contextKey="tambo-template" className="right" />
           </div>
-        </TamboMcpProvider>
-      </TamboProvider>
-    </div>
+        </div>
+      </TamboMcpProvider>
+    </TamboProvider>
   );
 }
