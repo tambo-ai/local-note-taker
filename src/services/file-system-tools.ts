@@ -363,8 +363,11 @@ export async function globFiles(params: {
   const { pattern, folderName } = params;
   const folders = await getTrackedFolders();
 
-  const foldersToSearch = folderName
-    ? folders.filter((f) => f.name === folderName)
+  // Strip leading slash from folderName if present for more permissive matching
+  const normalizedFolderName = folderName?.replace(/^\//, '');
+
+  const foldersToSearch = normalizedFolderName
+    ? folders.filter((f) => f.name === normalizedFolderName)
     : folders;
 
   if (foldersToSearch.length === 0) {
