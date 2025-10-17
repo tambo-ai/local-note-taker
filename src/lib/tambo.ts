@@ -100,30 +100,30 @@ export const tools: TamboTool[] = [
   {
     name: "readFile",
     description:
-      "Read the contents of a file from the local file system. Use virtual paths like /folder-name/path/to/file.txt",
+      "Read the contents of a file from the local file system. Use virtual paths like /folder-name/path/to/file.txt. The path parameter is REQUIRED.",
     tool: readFile,
     toolSchema: z
       .function()
       .args(
         z.object({
-          path: z.string().describe("Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
+          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
           encoding: z.string().optional().describe("File encoding (default: utf-8)"),
-        }),
+        }).strict(),
       )
       .returns(z.string().describe("File contents as a string")),
   },
   {
     name: "writeFile",
     description:
-      "Write or overwrite a file in the local file system. Creates parent directories if needed. Use virtual paths like /folder-name/path/to/file.txt",
+      "Write or overwrite a file in the local file system. Creates parent directories if needed. Use virtual paths like /folder-name/path/to/file.txt. The path and content parameters are REQUIRED.",
     tool: writeFile,
     toolSchema: z
       .function()
       .args(
         z.object({
-          path: z.string().describe("Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
-          content: z.string().describe("Content to write to the file"),
-        }),
+          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
+          content: z.string().describe("REQUIRED: Content to write to the file"),
+        }).strict(),
       )
       .returns(
         z.object({
@@ -135,17 +135,17 @@ export const tools: TamboTool[] = [
   {
     name: "editFile",
     description:
-      "Edit a file by replacing text. Can replace a single occurrence or all occurrences of a string.",
+      "Edit a file by replacing text. Can replace a single occurrence or all occurrences of a string. The path, oldString, and newString parameters are REQUIRED.",
     tool: editFile,
     toolSchema: z
       .function()
       .args(
         z.object({
-          path: z.string().describe("Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
-          oldString: z.string().describe("Text to find and replace"),
-          newString: z.string().describe("Replacement text"),
+          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
+          oldString: z.string().min(1).describe("REQUIRED: Text to find and replace"),
+          newString: z.string().describe("REQUIRED: Replacement text (can be empty string)"),
           replaceAll: z.boolean().optional().describe("Replace all occurrences (default: false)"),
-        }),
+        }).strict(),
       )
       .returns(
         z.object({
@@ -158,15 +158,15 @@ export const tools: TamboTool[] = [
   {
     name: "globFiles",
     description:
-      "Find files matching a glob pattern across tracked folders. Supports *, **, and ? wildcards. Examples: '**/*.ts' (all TypeScript files), 'src/**/*.tsx' (React components in src)",
+      "Find files matching a glob pattern across tracked folders. Supports *, **, and ? wildcards. Examples: '**/*.ts' (all TypeScript files), 'src/**/*.tsx' (React components in src). The pattern parameter is REQUIRED.",
     tool: globFiles,
     toolSchema: z
       .function()
       .args(
         z.object({
-          pattern: z.string().describe("Glob pattern (e.g., **/*.ts, src/**/*.tsx)"),
+          pattern: z.string().min(1).describe("REQUIRED: Glob pattern (e.g., **/*.ts, src/**/*.tsx)"),
           folderName: z.string().optional().describe("Limit search to specific folder"),
-        }),
+        }).strict(),
       )
       .returns(
         z.array(z.string()).describe("Array of virtual paths matching the pattern"),
@@ -175,17 +175,17 @@ export const tools: TamboTool[] = [
   {
     name: "grepFiles",
     description:
-      "Search for text in files using regex patterns. Returns matching lines with line numbers and context.",
+      "Search for text in files using regex patterns. Returns matching lines with line numbers and context. The pattern parameter is REQUIRED.",
     tool: grepFiles,
     toolSchema: z
       .function()
       .args(
         z.object({
-          pattern: z.string().describe("Regular expression pattern to search for"),
+          pattern: z.string().min(1).describe("REQUIRED: Regular expression pattern to search for"),
           folderName: z.string().optional().describe("Limit search to specific folder"),
           filePattern: z.string().optional().describe("Glob pattern to filter files (default: **/*)"),
           ignoreCase: z.boolean().optional().describe("Case-insensitive search (default: false)"),
-        }),
+        }).strict(),
       )
       .returns(
         z.array(
