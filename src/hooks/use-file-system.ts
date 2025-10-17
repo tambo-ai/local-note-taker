@@ -91,6 +91,7 @@ export function useFileSystem() {
   const [trackedFolders, setTrackedFolders] = useState<TrackedFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   /**
    * Load tracked folders from localStorage and IndexedDB on mount
@@ -407,6 +408,13 @@ export function useFileSystem() {
     [trackedFolders],
   );
 
+  /**
+   * Manually trigger a refresh of the file system
+   */
+  const refresh = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
   return {
     trackedFolders,
     loading,
@@ -416,5 +424,7 @@ export function useFileSystem() {
     getFileTree,
     expandDirectory,
     getHandleFromPath,
+    refresh,
+    refreshTrigger,
   };
 }

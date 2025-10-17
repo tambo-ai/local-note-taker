@@ -4,6 +4,7 @@
  */
 
 import type { GrepParams, GrepResult } from "@/types/file-system";
+import { fileSystemEvents } from "@/lib/file-system-events";
 import { isMatch } from "micromatch";
 
 /**
@@ -155,6 +156,20 @@ export async function writeFile(params: {
   try {
     let current: FileSystemDirectoryHandle = folder.handle;
 
+    // Check if file exists before writing
+    const fileName = relativePath[relativePath.length - 1];
+    let fileExists = false;
+    try {
+      let checkDir = current;
+      for (let i = 0; i < relativePath.length - 1; i++) {
+        checkDir = await checkDir.getDirectoryHandle(relativePath[i]);
+      }
+      await checkDir.getFileHandle(fileName);
+      fileExists = true;
+    } catch {
+      // File doesn't exist
+    }
+
     // Navigate/create directories
     for (let i = 0; i < relativePath.length - 1; i++) {
       current = await current.getDirectoryHandle(relativePath[i], {
@@ -163,11 +178,13 @@ export async function writeFile(params: {
     }
 
     // Create/overwrite the file
-    const fileName = relativePath[relativePath.length - 1];
     const fileHandle = await current.getFileHandle(fileName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(content);
     await writable.close();
+
+    // Emit change event
+    fileSystemEvents.emitChange(fileExists ? "update" : "create", path);
 
     return {
       success: true,
@@ -223,6 +240,9 @@ export async function editFile(params: {
 
   // Write back
   await writeFile({ path, content: newContent });
+
+  // Emit change event (writeFile already emits, but we emit again for edit-specific handling)
+  fileSystemEvents.emitChange("update", path);
 
   return {
     success: true,

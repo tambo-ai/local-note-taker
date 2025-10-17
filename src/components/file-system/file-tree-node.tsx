@@ -1,7 +1,7 @@
 "use client";
 
 import type { FileTreeNode } from "@/types/file-system";
-import { ChevronRight, File, Folder, FolderOpen } from "lucide-react";
+import { ChevronRight, Copy, File, Folder, FolderOpen } from "lucide-react";
 import * as React from "react";
 
 interface FileTreeNodeProps {
@@ -33,6 +33,8 @@ export function FileTreeNodeComponent({
     node.children ?? [],
   );
   const [loading, setLoading] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   const handleToggle = React.useCallback(async () => {
     if (node.type !== "directory") return;
@@ -55,6 +57,20 @@ export function FileTreeNodeComponent({
     }
   }, [node.type, node.path, expanded, children.length, onExpand]);
 
+  const handleCopyPath = React.useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(node.path);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy path:", err);
+      }
+    },
+    [node.path],
+  );
+
   const indentStyle = {
     paddingLeft: `${level * 16}px`,
   };
@@ -62,7 +78,7 @@ export function FileTreeNodeComponent({
   return (
     <div>
       <div
-        className="flex items-center gap-1 py-1 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded transition-colors"
+        className="flex items-center gap-1 py-1 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded transition-colors relative group"
         style={indentStyle}
         onClick={handleToggle}
         role="button"
@@ -73,6 +89,8 @@ export function FileTreeNodeComponent({
             handleToggle();
           }
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Expand/collapse chevron for directories */}
         {node.type === "directory" && (
@@ -111,6 +129,22 @@ export function FileTreeNodeComponent({
             Loading...
           </span>
         )}
+
+        {/* Copy button - appears on hover */}
+        <button
+          onClick={handleCopyPath}
+          className="absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+          title={copied ? "Copied!" : "Copy path"}
+          aria-label="Copy file path"
+        >
+          <Copy
+            className={`h-3.5 w-3.5 ${
+              copied
+                ? "text-green-600 dark:text-green-400"
+                : "text-gray-600 dark:text-gray-400"
+            }`}
+          />
+        </button>
       </div>
 
       {/* Children */}

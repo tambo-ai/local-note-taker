@@ -2,8 +2,9 @@
 
 import { FileTreeNodeComponent } from "@/components/file-system/file-tree-node";
 import { useFileSystem } from "@/hooks/use-file-system";
+import { fileSystemEvents } from "@/lib/file-system-events";
 import type { FileTreeNode } from "@/types/file-system";
-import { FolderPlus, X } from "lucide-react";
+import { FolderPlus, RefreshCw, X } from "lucide-react";
 import * as React from "react";
 
 interface FileSystemSidebarProps {
@@ -22,29 +23,89 @@ export function FileSystemSidebar({ className }: FileSystemSidebarProps) {
     removeFolder,
     getFileTree,
     expandDirectory,
+    refresh,
+    refreshTrigger,
   } = useFileSystem();
 
   const [fileTrees, setFileTrees] = React.useState<
     Map<string, FileTreeNode>
   >(new Map());
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   // Load file trees for all tracked folders
-  React.useEffect(() => {
-    async function loadTrees() {
-      const trees = new Map<string, FileTreeNode>();
-      for (const folder of trackedFolders) {
-        const tree = await getFileTree(folder.id);
-        if (tree) {
-          trees.set(folder.id, tree);
-        }
+  const loadTrees = React.useCallback(async () => {
+    if (trackedFolders.length === 0) return;
+
+    setIsRefreshing(true);
+    const trees = new Map<string, FileTreeNode>();
+    for (const folder of trackedFolders) {
+      const tree = await getFileTree(folder.id);
+      if (tree) {
+        trees.set(folder.id, tree);
       }
-      setFileTrees(trees);
+    }
+    setFileTrees(trees);
+    setIsRefreshing(false);
+  }, [trackedFolders, getFileTree]);
+
+  // Load trees when tracked folders change or refresh is triggered
+  React.useEffect(() => {
+    loadTrees();
+  }, [loadTrees, refreshTrigger]);
+
+  // Listen for file system change events
+  React.useEffect(() => {
+    const cleanup = fileSystemEvents.onChange(() => {
+      // Refresh the file tree when changes occur
+      refresh();
+    });
+
+    return cleanup;
+  }, [refresh]);
+
+  // Optional: Auto-refresh polling every 10 seconds when page is visible
+  React.useEffect(() => {
+    if (trackedFolders.length === 0) return;
+
+    let intervalId: NodeJS.Timeout;
+
+    const startPolling = () => {
+      // Poll every 10 seconds
+      intervalId = setInterval(() => {
+        refresh();
+      }, 10000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+
+    // Handle visibility change
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Refresh immediately when becoming visible
+        refresh();
+        startPolling();
+      }
+    };
+
+    // Start polling if page is visible
+    if (!document.hidden) {
+      startPolling();
     }
 
-    if (trackedFolders.length > 0) {
-      loadTrees();
-    }
-  }, [trackedFolders, getFileTree]);
+    // Listen for visibility changes
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [trackedFolders.length, refresh]);
 
   const handleRemoveFolder = React.useCallback(
     async (id: string, e: React.MouseEvent) => {
@@ -73,6 +134,16 @@ export function FileSystemSidebar({ className }: FileSystemSidebarProps) {
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Local Files</h2>
+          <button
+            onClick={refresh}
+            disabled={isRefreshing || loading}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh file tree"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </button>
         </div>
         <button
           onClick={addFolder}
