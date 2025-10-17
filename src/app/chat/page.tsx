@@ -12,23 +12,24 @@ export default function Home() {
   const mcpServers = useMcpServers();
 
   return (
-    <TamboProvider
-      apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-      components={components}
-      tools={tools}
-      tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
-    >
-      <TamboMcpProvider mcpServers={mcpServers}>
-        <div className="h-screen flex overflow-hidden relative">
-          {/* File System Sidebar */}
-          <FileSystemSidebar />
+    <div className="h-screen flex overflow-hidden">
+      {/* File System Sidebar */}
+      <FileSystemSidebar />
 
-          {/* Main Chat Area - Force thread history to right side with "right" class */}
-          <div className="flex-1 relative">
-            <MessageThreadFull contextKey="tambo-template" className="right" />
+      <TamboProvider
+        apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
+        components={components}
+        tools={tools}
+        tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+      >
+        <TamboMcpProvider mcpServers={mcpServers}>
+          <div className="flex-1 flex flex-col overflow-hidden relative">
+            <div className="w-full max-w-4xl mx-auto">
+              <MessageThreadFull contextKey="tambo-template" />
+            </div>
           </div>
-        </div>
-      </TamboMcpProvider>
-    </TamboProvider>
+        </TamboMcpProvider>
+      </TamboProvider>
+    </div>
   );
 }

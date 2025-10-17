@@ -4,6 +4,7 @@
  */
 
 import type { GrepParams, GrepResult } from "@/types/file-system";
+import { isMatch } from "micromatch";
 
 /**
  * Get all tracked folders from IndexedDB
@@ -230,21 +231,6 @@ export async function editFile(params: {
   };
 }
 
-/**
- * Match a simple glob pattern
- */
-function matchGlob(pattern: string, path: string): boolean {
-  // Convert glob pattern to regex
-  // Support: *, **, ?, and basic path matching
-  let regex = pattern
-    .replace(/\*\*/g, ".*") // ** matches any depth
-    .replace(/\*/g, "[^/]*") // * matches any characters except /
-    .replace(/\?/g, ".") // ? matches single character
-    .replace(/\./g, "\\."); // Escape dots
-
-  regex = `^${regex}$`;
-  return new RegExp(regex).test(path);
-}
 
 /**
  * Find files matching a glob pattern
@@ -269,24 +255,26 @@ export async function globFiles(params: {
   async function scanDirectory(
     dirHandle: FileSystemDirectoryHandle,
     basePath: string,
+    relativePath: string,
   ) {
     for await (const entry of dirHandle.values()) {
       const entryPath = `${basePath}/${entry.name}`;
+      const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
 
       if (entry.kind === "file") {
-        // Check if file matches pattern
-        if (matchGlob(pattern, entryPath)) {
+        // Check if file matches pattern (match against relative path without folder prefix)
+        if (isMatch(entryRelativePath, pattern)) {
           results.push(entryPath);
         }
       } else if (entry.kind === "directory") {
         // Recursively scan subdirectories
-        await scanDirectory(entry, entryPath);
+        await scanDirectory(entry, entryPath, entryRelativePath);
       }
     }
   }
 
   for (const folder of foldersToSearch) {
-    await scanDirectory(folder.handle, `/${folder.name}`);
+    await scanDirectory(folder.handle, `/${folder.name}`, "");
   }
 
   return results.sort();
@@ -313,13 +301,15 @@ export async function grepFiles(params: GrepParams): Promise<GrepResult[]> {
   async function searchDirectory(
     dirHandle: FileSystemDirectoryHandle,
     basePath: string,
+    relativePath: string,
   ) {
     for await (const entry of dirHandle.values()) {
       const entryPath = `${basePath}/${entry.name}`;
+      const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
 
       if (entry.kind === "file") {
-        // Check if file matches the file pattern
-        if (!matchGlob(filePattern, entryPath)) {
+        // Check if file matches the file pattern (match against relative path without folder prefix)
+        if (!isMatch(entryRelativePath, filePattern)) {
           continue;
         }
 
@@ -345,13 +335,13 @@ export async function grepFiles(params: GrepParams): Promise<GrepResult[]> {
         }
       } else if (entry.kind === "directory") {
         // Recursively search subdirectories
-        await searchDirectory(entry, entryPath);
+        await searchDirectory(entry, entryPath, entryRelativePath);
       }
     }
   }
 
   for (const folder of foldersToSearch) {
-    await searchDirectory(folder.handle, `/${folder.name}`);
+    await searchDirectory(folder.handle, `/${folder.name}`, "");
   }
 
   return results;
