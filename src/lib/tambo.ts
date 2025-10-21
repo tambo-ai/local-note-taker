@@ -11,20 +11,58 @@
 import { Graph, graphSchema } from "@/components/tambo/graph";
 import { DataCard, dataCardSchema } from "@/components/ui/card-data";
 import {
-  getCountryPopulations,
-  getGlobalPopulationTrend,
-} from "@/services/population-stats";
-import {
   editFile,
   globFiles,
   grepFiles,
   readFile,
   writeFile,
 } from "@/services/file-system-tools";
+import {
+  getCountryPopulations,
+  getGlobalPopulationTrend,
+} from "@/services/population-stats";
 import type { TamboComponent } from "@tambo-ai/react";
 import { TamboTool } from "@tambo-ai/react";
+import TamboAI from "@tambo-ai/typescript-sdk";
 import { z } from "zod";
 
+const fileResponse = z.object({
+  content: z
+    .string()
+    .optional()
+    .describe(
+      "File contents in cat -n format with line numbers. Lines longer than 2000 chars are truncated. Only present for text files.",
+    ),
+  attachment: z
+    .object({
+      filename: z.string(),
+      mimeType: z.string(),
+      url: z.string().describe("Data URL (data:image/png;base64,...)"),
+    })
+    .optional()
+    .describe("For image files, contains the image as a base64 data URL"),
+  metadata: z.object({
+    path: z.string(),
+    size: z.number().describe("File size in bytes"),
+    lastModified: z.number().describe("Last modified timestamp"),
+    mimeType: z.string(),
+    isImage: z.boolean(),
+    lineCount: z
+      .number()
+      .optional()
+      .describe("Total number of lines (text files only)"),
+    offset: z
+      .number()
+      .optional()
+      .describe("Starting line number (text files only)"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Number of lines returned (text files only)"),
+  }),
+});
+
+type FileResponse = z.infer<typeof fileResponse>;
 /**
  * tools
  *
@@ -105,33 +143,63 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z.object({
-          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
-          offset: z.number().optional().describe("Line number to start reading from (0-indexed, default: 0)"),
-          limit: z.number().optional().describe("Number of lines to read (default: 2000)"),
-          encoding: z.string().optional().describe("File encoding (default: utf-8)"),
-        }).strict(),
+        z
+          .object({
+            path: z
+              .string()
+              .min(1)
+              .describe(
+                "REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)",
+              ),
+            offset: z
+              .number()
+              .optional()
+              .describe(
+                "Line number to start reading from (0-indexed, default: 0)",
+              ),
+            limit: z
+              .number()
+              .optional()
+              .describe("Number of lines to read (default: 2000)"),
+            encoding: z
+              .string()
+              .optional()
+              .describe("File encoding (default: utf-8)"),
+          })
+          .strict(),
       )
-      .returns(
-        z.object({
-          content: z.string().optional().describe("File contents in cat -n format with line numbers. Lines longer than 2000 chars are truncated. Only present for text files."),
-          attachment: z.object({
-            filename: z.string(),
-            mimeType: z.string(),
-            url: z.string().describe("Data URL (data:image/png;base64,...)"),
-          }).optional().describe("For image files, contains the image as a base64 data URL"),
-          metadata: z.object({
-            path: z.string(),
-            size: z.number().describe("File size in bytes"),
-            lastModified: z.number().describe("Last modified timestamp"),
-            mimeType: z.string(),
-            isImage: z.boolean(),
-            lineCount: z.number().optional().describe("Total number of lines (text files only)"),
-            offset: z.number().optional().describe("Starting line number (text files only)"),
-            limit: z.number().optional().describe("Number of lines returned (text files only)"),
-          }),
-        })
-      ),
+      .returns(fileResponse),
+    transformToContent(result: FileResponse) {
+      const messages: TamboAI.Beta.ChatCompletionContentPart[] = [];
+      if (result.content) {
+        messages.push({
+          type: "text",
+          text: result.content,
+        });
+      }
+
+      if (result.attachment) {
+        if (result.attachment.mimeType.startsWith("image/")) {
+          messages.push({
+            type: "image_url",
+            image_url: {
+              url: result.attachment.url,
+            },
+          });
+        }
+        if (["audio/wav", "audio/mp3"].includes(result.attachment.mimeType)) {
+          messages.push({
+            type: "input_audio",
+            input_audio: {
+              data: result.attachment.url,
+              format:
+                result.attachment.mimeType === "audio/wav" ? "wav" : "mp3",
+            },
+          });
+        }
+      }
+      return messages;
+    },
   },
   {
     name: "writeFile",
@@ -141,10 +209,19 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z.object({
-          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
-          content: z.string().describe("REQUIRED: Content to write to the file"),
-        }).strict(),
+        z
+          .object({
+            path: z
+              .string()
+              .min(1)
+              .describe(
+                "REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)",
+              ),
+            content: z
+              .string()
+              .describe("REQUIRED: Content to write to the file"),
+          })
+          .strict(),
       )
       .returns(
         z.object({
@@ -161,12 +238,27 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z.object({
-          path: z.string().min(1).describe("REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)"),
-          oldString: z.string().min(1).describe("REQUIRED: Text to find and replace"),
-          newString: z.string().describe("REQUIRED: Replacement text (can be empty string)"),
-          replaceAll: z.boolean().optional().describe("Replace all occurrences (default: false)"),
-        }).strict(),
+        z
+          .object({
+            path: z
+              .string()
+              .min(1)
+              .describe(
+                "REQUIRED: Virtual path to the file (e.g., /MyFolder/src/index.ts)",
+              ),
+            oldString: z
+              .string()
+              .min(1)
+              .describe("REQUIRED: Text to find and replace"),
+            newString: z
+              .string()
+              .describe("REQUIRED: Replacement text (can be empty string)"),
+            replaceAll: z
+              .boolean()
+              .optional()
+              .describe("Replace all occurrences (default: false)"),
+          })
+          .strict(),
       )
       .returns(
         z.object({
@@ -184,13 +276,23 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z.object({
-          pattern: z.string().min(1).describe("REQUIRED: Glob pattern (e.g., **/*.ts, src/**/*.tsx)"),
-          folderName: z.string().optional().describe("Limit search to specific folder"),
-        }).strict(),
+        z
+          .object({
+            pattern: z
+              .string()
+              .min(1)
+              .describe("REQUIRED: Glob pattern (e.g., **/*.ts, src/**/*.tsx)"),
+            folderName: z
+              .string()
+              .optional()
+              .describe("Limit search to specific folder"),
+          })
+          .strict(),
       )
       .returns(
-        z.array(z.string()).describe("Array of virtual paths matching the pattern"),
+        z
+          .array(z.string())
+          .describe("Array of virtual paths matching the pattern"),
       ),
   },
   {
@@ -201,18 +303,34 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z.object({
-          pattern: z.string().min(1).describe("REQUIRED: Regular expression pattern to search for"),
-          folderName: z.string().optional().describe("Limit search to specific folder"),
-          filePattern: z.string().optional().describe("Glob pattern to filter files (default: **/*)"),
-          ignoreCase: z.boolean().optional().describe("Case-insensitive search (default: false)"),
-        }).strict(),
+        z
+          .object({
+            pattern: z
+              .string()
+              .min(1)
+              .describe("REQUIRED: Regular expression pattern to search for"),
+            folderName: z
+              .string()
+              .optional()
+              .describe("Limit search to specific folder"),
+            filePattern: z
+              .string()
+              .optional()
+              .describe("Glob pattern to filter files (default: **/*)"),
+            ignoreCase: z
+              .boolean()
+              .optional()
+              .describe("Case-insensitive search (default: false)"),
+          })
+          .strict(),
       )
       .returns(
         z.array(
           z.object({
             path: z.string().describe("Virtual path to the file"),
-            lineNumber: z.number().describe("Line number where match was found"),
+            lineNumber: z
+              .number()
+              .describe("Line number where match was found"),
             line: z.string().describe("The matching line content"),
             column: z.number().describe("Column where match starts"),
           }),
