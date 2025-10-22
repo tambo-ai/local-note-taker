@@ -3,8 +3,8 @@
  * @description File operation tools for Tambo AI to interact with local file system
  */
 
-import type { GrepParams, GrepResult } from "@/types/file-system";
 import { fileSystemEvents } from "@/lib/file-system-events";
+import type { GrepParams, GrepResult } from "@/types/file-system";
 import { isMatch } from "micromatch";
 
 /**
@@ -47,7 +47,10 @@ async function getTrackedFolders(): Promise<
 /**
  * Parse a virtual path into folder name and relative path
  */
-function parsePath(path: string): { folderName: string; relativePath: string[] } {
+function parsePath(path: string): {
+  folderName: string;
+  relativePath: string[];
+} {
   const parts = path.split("/").filter(Boolean);
   if (parts.length === 0) {
     throw new Error("Invalid path: empty path");
@@ -122,10 +125,21 @@ async function getDirectoryHandle(
  * Determine if a file is an image based on its extension or MIME type
  */
 function isImageFile(filename: string, mimeType: string): boolean {
-  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
+  const imageExtensions = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".bmp",
+    ".svg",
+    ".ico",
+  ];
   const lowerFilename = filename.toLowerCase();
-  const hasImageExt = imageExtensions.some(ext => lowerFilename.endsWith(ext));
-  const hasImageMime = mimeType.startsWith('image/');
+  const hasImageExt = imageExtensions.some((ext) =>
+    lowerFilename.endsWith(ext),
+  );
+  const hasImageMime = mimeType.startsWith("image/");
   return hasImageExt || hasImageMime;
 }
 
@@ -165,7 +179,7 @@ export async function readFile(params: {
 
   const file = await fileHandle.getFile();
   const filename = file.name;
-  const mimeType = file.type || 'application/octet-stream';
+  const mimeType = file.type || "application/octet-stream";
   const size = file.size;
   const lastModified = file.lastModified;
 
@@ -177,8 +191,8 @@ export async function readFile(params: {
     const base64 = btoa(
       new Uint8Array(buffer).reduce(
         (data, byte) => data + String.fromCharCode(byte),
-        ''
-      )
+        "",
+      ),
     );
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
@@ -200,7 +214,7 @@ export async function readFile(params: {
 
   // Handle text files
   const text = await file.text();
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const totalLineCount = lines.length;
 
   // Apply offset and limit
@@ -211,11 +225,12 @@ export async function readFile(params: {
   // Format with line numbers (cat -n format) and truncate long lines
   const formattedLines = selectedLines.map((line, index) => {
     const lineNumber = startLine + index + 1; // Line numbers start at 1
-    const truncatedLine = line.length > 2000 ? line.substring(0, 2000) + '...[truncated]' : line;
+    const truncatedLine =
+      line.length > 2000 ? line.substring(0, 2000) + "...[truncated]" : line;
     return `${lineNumber.toString().padStart(6)}→${truncatedLine}`;
   });
 
-  const content = formattedLines.join('\n');
+  const content = formattedLines.join("\n");
 
   return {
     content,
@@ -287,7 +302,9 @@ export async function writeFile(params: {
     };
   } catch (err) {
     throw new Error(
-      `Failed to write file: ${err instanceof Error ? err.message : "Unknown error"}`,
+      `Failed to write file: ${
+        err instanceof Error ? err.message : "Unknown error"
+      }`,
     );
   }
 }
@@ -352,7 +369,6 @@ export async function editFile(params: {
   };
 }
 
-
 /**
  * Find files matching a glob pattern
  */
@@ -364,7 +380,7 @@ export async function globFiles(params: {
   const folders = await getTrackedFolders();
 
   // Strip leading slash from folderName if present for more permissive matching
-  const normalizedFolderName = folderName?.replace(/^\//, '');
+  const normalizedFolderName = folderName?.replace(/^\//, "");
 
   const foldersToSearch = normalizedFolderName
     ? folders.filter((f) => f.name === normalizedFolderName)
@@ -383,7 +399,9 @@ export async function globFiles(params: {
   ) {
     for await (const entry of dirHandle.values()) {
       const entryPath = `${basePath}/${entry.name}`;
-      const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      const entryRelativePath = relativePath
+        ? `${relativePath}/${entry.name}`
+        : entry.name;
 
       if (entry.kind === "file") {
         // Check if file matches pattern (match against relative path without folder prefix)
@@ -408,7 +426,12 @@ export async function globFiles(params: {
  * Search for text in files using regex pattern
  */
 export async function grepFiles(params: GrepParams): Promise<GrepResult[]> {
-  const { pattern, folderName, filePattern = "**/*", ignoreCase = false } = params;
+  const {
+    pattern,
+    folderName,
+    filePattern = "**/*",
+    ignoreCase = false,
+  } = params;
   const folders = await getTrackedFolders();
 
   const foldersToSearch = folderName
@@ -429,7 +452,9 @@ export async function grepFiles(params: GrepParams): Promise<GrepResult[]> {
   ) {
     for await (const entry of dirHandle.values()) {
       const entryPath = `${basePath}/${entry.name}`;
-      const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      const entryRelativePath = relativePath
+        ? `${relativePath}/${entry.name}`
+        : entry.name;
 
       if (entry.kind === "file") {
         // Check if file matches the file pattern (match against relative path without folder prefix)
