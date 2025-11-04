@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "init": "npx tambo init",
     "check-types": "tsc --noEmit"
   },
@@ -35,7 +35,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^24.3.0",
