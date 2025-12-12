@@ -7,24 +7,59 @@ import { useEffect, useState } from "react";
  * @param refs - Array of refs to merge
  * @returns A callback ref that updates all provided refs
  */
-export function useMergedRef<T>(...refs: React.Ref<T>[]) {
-  return React.useCallback(
-    (element: T) => {
-      for (const ref of refs) {
-        if (!ref) continue;
+export function useMergeRefs<Instance>(
+  ...refs: (React.Ref<Instance> | undefined)[]
+): null | React.RefCallback<Instance> {
+  const cleanupRef = React.useRef<void | (() => void)>(undefined);
 
-        if (typeof ref === "function") {
-          ref(element);
-        } else {
-          // This cast is safe because we're just updating the .current property
-          (ref as React.MutableRefObject<T>).current = element;
-        }
+  const refEffect = React.useCallback((instance: Instance | null) => {
+    const cleanups = refs.map((ref) => {
+      if (ref == null) {
+        return;
       }
-    },
-    [refs],
-  );
-}
 
+      if (typeof ref === "function") {
+        const refCallback = ref;
+        const refCleanup: void | (() => void) = refCallback(instance);
+        return typeof refCleanup === "function"
+          ? refCleanup
+          : () => {
+              refCallback(null);
+            };
+      }
+
+      (ref as React.MutableRefObject<Instance | null>).current = instance;
+      return () => {
+        (ref as React.MutableRefObject<Instance | null>).current = null;
+      };
+    });
+
+    return () => {
+      cleanups.forEach((refCleanup) => refCleanup?.());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, refs);
+
+  return React.useMemo(() => {
+    if (refs.every((ref) => ref == null)) {
+      return null;
+    }
+
+    return (value) => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        (cleanupRef as React.MutableRefObject<void | (() => void)>).current =
+          undefined;
+      }
+
+      if (value != null) {
+        (cleanupRef as React.MutableRefObject<void | (() => void)>).current =
+          refEffect(value);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refEffect, ...refs]);
+}
 /**
  * Custom hook to detect canvas space presence and position
  * @param elementRef - Reference to the component to compare position with
@@ -92,18 +127,21 @@ export function usePositioning(
   // If panel has right class, history should be on right
   // If canvas is on left, history should be on right
   // Otherwise, history should be on left
-  const historyPosition: "left" | "right" = isRightClass
-    ? "right"
-    : hasCanvasSpace && canvasIsOnLeft
-      ? "right"
-      : "left";
+  let historyPosition: "left" | "right";
+  if (isRightClass) {
+    historyPosition = "right";
+  } else if (hasCanvasSpace && canvasIsOnLeft) {
+    historyPosition = "right";
+  } else {
+    historyPosition = "left";
+  }
 
   return { isLeftPanel, historyPosition };
 }
 
 /**
  * Converts message content into a safely renderable format.
- * Primarily joins text blocks from arrays into a single string.
+ * Handles text, resource references, and other content types.
  * @param content - The message content (string, element, array, etc.)
  * @returns A renderable string or React element.
  */
@@ -114,10 +152,20 @@ export function getSafeContent(
   if (typeof content === "string") return content;
   if (React.isValidElement(content)) return content; // Pass elements through
   if (Array.isArray(content)) {
-    // Filter out non-text items and join text
-    return content
-      .map((item) => (item?.type === "text" ? (item.text ?? "") : ""))
-      .join("");
+    // Map content parts to strings, including resource references
+    const parts: string[] = [];
+    for (const item of content) {
+      if (item?.type === "text") {
+        parts.push(item.text ?? "");
+      } else if (item?.type === "resource") {
+        // Format resource references as @uri (uri already contains serverKey prefix if applicable)
+        const uri = item.resource?.uri;
+        if (uri) {
+          parts.push(`@${uri}`);
+        }
+      }
+    }
+    return parts.join(" ");
   }
   // Handle potential edge cases or unknown types
   // console.warn("getSafeContent encountered unknown content type:", content);
