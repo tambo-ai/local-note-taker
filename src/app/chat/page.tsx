@@ -1,9 +1,10 @@
 "use client";
 
 import { FileSystemSidebar } from "@/components/file-system/file-system-sidebar";
-import { MessageThreadFull } from "@/components/tambo/message-thread-full";
 import { useMcpServers } from "@/components/tambo/mcp-config-modal";
+import { MessageThreadFull } from "@/components/tambo/message-thread-full";
 import { components, tools } from "@/lib/tambo";
+import { getResource, listResources } from "@/services/file-resources";
 import { TamboProvider } from "@tambo-ai/react";
 import { TamboMcpProvider } from "@tambo-ai/react/mcp";
 
@@ -21,6 +22,8 @@ export default function Home() {
         components={components}
         tools={tools}
         tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+        listResources={listResources}
+        getResource={getResource}
         mcpServers={mcpServers}
       >
         <TamboMcpProvider>
