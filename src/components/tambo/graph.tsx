@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import * as React from "react";
 import * as RechartsCore from "recharts";
-import { z } from "zod";
+import { z } from "zod/v3";
 
 /**
  * Type for graph variant
@@ -156,7 +156,12 @@ export type GraphProps = z.infer<typeof graphSchema>;
 export type GraphDataType = z.infer<typeof graphDataSchema>;
 
 /**
- * Default colors for the Graph component
+ * Default colors for the Graph component.
+ *
+ * Color handling: our v4 theme defines CSS variables like `--border`,
+ * `--muted-foreground`, and `--chart-1` as full OKLCH color values in
+ * `globals-v4.css`, so we pass them directly as `var(--token)` to
+ * Recharts/SVG props instead of wrapping them in `hsl()`/`oklch()`.
  */
 const defaultColors = [
   "hsl(220, 100%, 62%)", // Blue
