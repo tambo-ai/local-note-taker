@@ -33,7 +33,6 @@ export function FileTreeNodeComponent({
     node.children ?? [],
   );
   const [loading, setLoading] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
   const handleToggle = React.useCallback(async () => {
@@ -89,8 +88,6 @@ export function FileTreeNodeComponent({
             handleToggle();
           }
         }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Expand/collapse chevron for directories */}
         {node.type === "directory" && (
