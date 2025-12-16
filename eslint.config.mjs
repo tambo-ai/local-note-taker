@@ -9,6 +9,8 @@ const eslintConfig = [
   },
   {
     files: ["src/components/tambo/**/*.{ts,tsx}"],
+    // Template components intentionally use patterns that trigger React Compiler lint rules.
+    // Keep these disables scoped to the template directory so new app code still benefits.
     rules: {
       // Disable overly strict React Compiler rules for template components.
       "react-hooks/set-state-in-effect": "off",
@@ -20,12 +22,14 @@ const eslintConfig = [
   },
   {
     files: ["src/app/interactables/**/*.{ts,tsx}"],
+    // Demo code synchronizes local state from props in effects.
     rules: {
       "react-hooks/set-state-in-effect": "off",
     },
   },
   {
     files: ["src/lib/thread-hooks.ts"],
+    // `useMergedRef` mutates `ref.current` by design.
     rules: {
       "react-hooks/immutability": "off",
     },
