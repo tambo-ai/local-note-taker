@@ -6,7 +6,6 @@ import { MessageThreadFull } from "@/components/tambo/message-thread-full";
 import { components, tools } from "@/lib/tambo";
 import { getResource, listResources } from "@/services/file-resources";
 import { TamboProvider } from "@tambo-ai/react";
-import { TamboMcpProvider } from "@tambo-ai/react/mcp";
 
 export default function Home() {
   // Load MCP server configurations
@@ -25,14 +24,13 @@ export default function Home() {
         listResources={listResources}
         getResource={getResource}
         mcpServers={mcpServers}
+        contextKey="tambo-template"
       >
-        <TamboMcpProvider>
-          <div className="flex-1 flex flex-col overflow-hidden relative">
-            <div className="w-full max-w-4xl mx-auto">
-              <MessageThreadFull contextKey="tambo-template" />
-            </div>
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <div className="w-full max-w-4xl mx-auto">
+            <MessageThreadFull />
           </div>
-        </TamboMcpProvider>
+        </div>
       </TamboProvider>
     </div>
   );
