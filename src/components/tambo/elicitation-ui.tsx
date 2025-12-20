@@ -51,7 +51,7 @@ const BooleanField: React.FC<FieldProps> = ({
           className={cn(
             "flex-1 px-4 py-2 rounded-lg border transition-colors",
             boolValue === true
-              ? "bg-primary text-primary-foreground border-primary"
+              ? "bg-accent text-accent-foreground border-accent"
               : "bg-background border-border hover:bg-muted",
           )}
         >
@@ -63,7 +63,7 @@ const BooleanField: React.FC<FieldProps> = ({
           className={cn(
             "flex-1 px-4 py-2 rounded-lg border transition-colors",
             boolValue === false
-              ? "bg-primary text-primary-foreground border-primary"
+              ? "bg-accent text-accent-foreground border-accent"
               : "bg-background border-border hover:bg-muted",
           )}
         >
@@ -109,7 +109,7 @@ const EnumField: React.FC<FieldProps> = ({
             className={cn(
               "px-4 py-2 rounded-lg border transition-colors",
               stringValue === option
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-accent text-accent-foreground border-accent"
                 : "bg-background border-border hover:bg-muted",
             )}
           >
@@ -133,8 +133,6 @@ const StringField: React.FC<FieldProps> = ({
   autoFocus,
   validationError,
 }) => {
-  const inputId = React.useId();
-
   if (schema.type !== "string") {
     return null;
   }
@@ -159,6 +157,7 @@ const StringField: React.FC<FieldProps> = ({
 
   const inputType = getInputType();
   const hasError = !!validationError;
+  const inputId = React.useId();
   const errorId = `${inputId}-error`;
 
   return (
@@ -177,7 +176,7 @@ const StringField: React.FC<FieldProps> = ({
           "w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2",
           hasError
             ? "border-destructive focus:ring-destructive"
-            : "border-border focus:ring-primary",
+            : "border-border focus:ring-accent",
         )}
         placeholder={schema.description ?? name}
         minLength={"minLength" in schema ? schema.minLength : undefined}
@@ -207,14 +206,13 @@ const NumberField: React.FC<FieldProps> = ({
   autoFocus,
   validationError,
 }) => {
-  const inputId = React.useId();
-
   if (schema.type !== "number" && schema.type !== "integer") {
     return null;
   }
   const numberSchema = schema;
   const numberValue = value as number | undefined;
   const hasError = !!validationError;
+  const inputId = React.useId();
   const errorId = `${inputId}-error`;
 
   return (
@@ -240,7 +238,7 @@ const NumberField: React.FC<FieldProps> = ({
           "w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2",
           hasError
             ? "border-destructive focus:ring-destructive"
-            : "border-border focus:ring-primary",
+            : "border-border focus:ring-accent",
         )}
         placeholder={schema.description ?? name}
         min={numberSchema.minimum}
@@ -614,7 +612,7 @@ export const ElicitationUI: React.FC<ElicitationUIProps> = ({
           type="button"
           onClick={handleAccept}
           disabled={!isValid}
-          className="px-6 py-2 text-sm rounded-lg bg-black/80 text-white hover:bg-black/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Submit
         </button>

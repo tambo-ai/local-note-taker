@@ -80,14 +80,12 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z
-          .object({
-            continent: z.string().optional(),
-            sortBy: z.enum(["population", "growthRate"]).optional(),
-            limit: z.number().optional(),
-            order: z.enum(["asc", "desc"]).optional(),
-          })
-          .optional(),
+        z.object({
+          continent: z.string().optional(),
+          sortBy: z.enum(["population", "growthRate"]).optional(),
+          limit: z.number().optional(),
+          order: z.enum(["asc", "desc"]).optional(),
+        }),
       )
       .returns(
         z.array(
@@ -117,12 +115,10 @@ export const tools: TamboTool[] = [
     toolSchema: z
       .function()
       .args(
-        z
-          .object({
-            startYear: z.number().optional(),
-            endYear: z.number().optional(),
-          })
-          .optional(),
+        z.object({
+          startYear: z.number().optional(),
+          endYear: z.number().optional(),
+        }),
       )
       .returns(
         z.array(

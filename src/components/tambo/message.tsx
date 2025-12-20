@@ -19,6 +19,48 @@ import { useState } from "react";
 import { Streamdown } from "streamdown";
 
 /**
+ * Converts message content to markdown format for rendering with streamdown.
+ * Handles text and resource content parts, converting resources to markdown links
+ * with a custom URL scheme that will be rendered as Mention components.
+ *
+ * @param content - The message content (string, element, array, etc.)
+ * @returns A markdown string ready for streamdown rendering
+ */
+function convertContentToMarkdown(
+  content: TamboThreadMessage["content"] | React.ReactNode | undefined | null,
+): string {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  if (React.isValidElement(content)) {
+    // For React elements, we can't convert to markdown - this shouldn't happen
+    // in normal flow, but keep backward compatibility
+    return "";
+  }
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const item of content) {
+      if (item?.type === "text") {
+        parts.push(item.text ?? "");
+      } else if (item?.type === "resource") {
+        const resource = item.resource;
+        const uri = resource?.uri;
+        if (uri) {
+          // Use resource name for display, fallback to URI if no name
+          const displayName = resource?.name ?? uri;
+          // Use a custom protocol that looks more standard to avoid blocking
+          // Format: tambo-resource://<encoded-uri>
+          // We'll detect this in the link component and decode the URI
+          const encodedUri = encodeURIComponent(uri);
+          parts.push(`[${displayName}](tambo-resource://${encodedUri})`);
+        }
+      }
+    }
+    return parts.join(" ");
+  }
+  return "";
+}
+
+/**
  * CSS variants for the message container
  * @typedef {Object} MessageVariants
  * @property {string} default - Default styling
@@ -95,8 +137,10 @@ export function getToolCallRequest(
  * Props for the Message component.
  * Extends standard HTMLDivElement attributes.
  */
-export interface MessageProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "content"> {
+export interface MessageProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "content"
+> {
   /** The role of the message sender ('user' or 'assistant'). */
   role: "user" | "assistant";
   /** The full Tambo thread message object. */
@@ -179,6 +223,32 @@ const LoadingIndicator: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 LoadingIndicator.displayName = "LoadingIndicator";
 
 /**
+ * Internal component to render message content based on its type
+ */
+function MessageContentRenderer({
+  contentToRender,
+  markdownContent,
+  markdown,
+}: {
+  contentToRender: unknown;
+  markdownContent: string;
+  markdown: boolean;
+}) {
+  if (!contentToRender) {
+    return <span className="text-muted-foreground italic">Empty message</span>;
+  }
+  if (React.isValidElement(contentToRender)) {
+    return contentToRender;
+  }
+  if (markdown) {
+    return (
+      <Streamdown components={markdownComponents}>{markdownContent}</Streamdown>
+    );
+  }
+  return markdownContent;
+}
+
+/**
  * Props for the MessageImages component.
  */
 export type MessageImagesProps = React.HTMLAttributes<HTMLDivElement>;
@@ -228,10 +298,12 @@ MessageImages.displayName = "MessageImages";
  * Props for the MessageContent component.
  * Extends standard HTMLDivElement attributes.
  */
-export interface MessageContentProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "content"> {
+export interface MessageContentProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "content"
+> {
   /** Optional override for the message content. If not provided, uses the content from the message object in the context. */
-  content?: string | { type: string; text?: string }[];
+  content?: string | TamboThreadMessage["content"];
   /** Optional flag to render as Markdown. Default is true. */
   markdown?: boolean;
 }
@@ -249,12 +321,12 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
     const { message, isLoading } = useMessageContext();
     const contentToRender = children ?? contentProp ?? message.content;
 
-    const safeContent = React.useMemo(
-      () => getSafeContent(contentToRender as TamboThreadMessage["content"]),
-      [contentToRender],
-    );
+    const markdownContent = React.useMemo(() => {
+      const result = convertContentToMarkdown(contentToRender);
+      return result;
+    }, [contentToRender]);
     const hasContent = React.useMemo(
-      () => checkHasContent(contentToRender as TamboThreadMessage["content"]),
+      () => checkHasContent(contentToRender),
       [contentToRender],
     );
 
@@ -282,19 +354,11 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
             className={cn("break-words", !markdown && "whitespace-pre-wrap")}
             data-slot="message-content-text"
           >
-            {!contentToRender ? (
-              <span className="text-muted-foreground italic">
-                Empty message
-              </span>
-            ) : React.isValidElement(contentToRender) ? (
-              contentToRender
-            ) : markdown ? (
-              <Streamdown components={markdownComponents}>
-                {typeof safeContent === "string" ? safeContent : ""}
-              </Streamdown>
-            ) : (
-              safeContent
-            )}
+            <MessageContentRenderer
+              contentToRender={contentToRender}
+              markdownContent={markdownContent}
+              markdown={markdown}
+            />
             {message.isCancelled && (
               <span className="text-muted-foreground text-xs">cancelled</span>
             )}
@@ -310,8 +374,10 @@ MessageContent.displayName = "MessageContent";
  * Props for the ToolcallInfo component.
  * Extends standard HTMLDivElement attributes.
  */
-export interface ToolcallInfoProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "content"> {
+export interface ToolcallInfoProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "content"
+> {
   /** Optional flag to render response content as Markdown. Default is true. */
   markdown?: boolean;
 }
@@ -331,6 +397,27 @@ function getToolStatusMessage(
     ? message.component?.statusMessage
     : message.component?.completionStatusMessage;
   return toolStatusMessage ?? toolCallMessage;
+}
+
+/**
+ * Internal component to render tool call status icon
+ */
+function ToolcallStatusIcon({
+  hasToolError,
+  isLoading,
+}: {
+  hasToolError: boolean | undefined;
+  isLoading: boolean | undefined;
+}) {
+  if (hasToolError) {
+    return <X className="w-3 h-3 text-bold text-red-500" />;
+  }
+  if (isLoading) {
+    return (
+      <Loader2 className="w-3 h-3 text-muted-foreground text-bold animate-spin" />
+    );
+  }
+  return <Check className="w-3 h-3 text-bold text-green-500" />;
 }
 
 /**
@@ -372,7 +459,7 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
 
     const toolCallRequest: TamboAI.ToolCallRequest | undefined =
       getToolCallRequest(message);
-    const hasToolError = message.error;
+    const hasToolError = !!message.error;
 
     const toolStatusMessage = getToolStatusMessage(message, isLoading);
 
@@ -393,16 +480,13 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
             aria-controls={toolDetailsId}
             onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
-              "flex items-center gap-1 cursor-pointer hover:bg-gray-100 rounded-md p-1 select-none w-fit",
+              "flex items-center gap-1 cursor-pointer hover:bg-muted rounded-md p-1 select-none w-fit",
             )}
           >
-            {hasToolError ? (
-              <X className="w-3 h-3 text-bold text-red-500" />
-            ) : isLoading ? (
-              <Loader2 className="w-3 h-3 text-muted-foreground text-bold animate-spin" />
-            ) : (
-              <Check className="w-3 h-3 text-bold text-green-500" />
-            )}
+            <ToolcallStatusIcon
+              hasToolError={hasToolError}
+              isLoading={isLoading}
+            />
             <span>{toolStatusMessage}</span>
             <ChevronDown
               className={cn(
@@ -602,14 +686,11 @@ const ReasoningInfo = React.forwardRef<HTMLDivElement, ReasoningInfoProps>(
             )}
           >
             <span className={isLoading ? "animate-thinking-gradient" : ""}>
-              {isLoading
-                ? "Thinking "
-                : message.reasoningDurationMS
-                  ? formatReasoningDuration(message.reasoningDurationMS) + " "
-                  : "Done Thinking "}
-              {message.reasoning.length > 1
-                ? `(${message.reasoning.length} steps)`
-                : ""}
+              <ReasoningStatusText
+                isLoading={isLoading}
+                reasoningDurationMS={message.reasoningDurationMS}
+                reasoningSteps={message.reasoning.length}
+              />
             </span>
             <ChevronDown
               className={cn(
@@ -657,6 +738,35 @@ function keyifyParameters(parameters: TamboAI.ToolCallParameter[] | undefined) {
   if (!parameters) return;
   return Object.fromEntries(
     parameters.map((p) => [p.parameterName, p.parameterValue]),
+  );
+}
+
+/**
+ * Internal component to render reasoning status text
+ */
+function ReasoningStatusText({
+  isLoading,
+  reasoningDurationMS,
+  reasoningSteps,
+}: {
+  isLoading: boolean | undefined;
+  reasoningDurationMS?: number;
+  reasoningSteps: number;
+}) {
+  let statusText: string;
+  if (isLoading) {
+    statusText = "Thinking ";
+  } else if (reasoningDurationMS) {
+    statusText = formatReasoningDuration(reasoningDurationMS) + " ";
+  } else {
+    statusText = "Done Thinking ";
+  }
+
+  return (
+    <>
+      {statusText}
+      {reasoningSteps > 1 ? `(${reasoningSteps} steps)` : ""}
+    </>
   );
 }
 
@@ -802,7 +912,7 @@ const MessageRenderedComponentArea = React.forwardRef<
                   );
                 }
               }}
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-secondary transition-colors duration-200 cursor-pointer group"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer group"
               aria-label="View component in canvas"
             >
               View component

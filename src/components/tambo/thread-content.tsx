@@ -55,8 +55,7 @@ const useThreadContentContext = () => {
  * Props for the ThreadContent component.
  * Extends standard HTMLDivElement attributes.
  */
-export interface ThreadContentProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface ThreadContentProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Optional styling variant for the message container */
   variant?: VariantProps<typeof messageVariants>["variant"];
   /** The child elements to render within the container. */
@@ -144,9 +143,7 @@ const ThreadContentMessages = React.forwardRef<
           <div
             key={
               message.id ??
-              `${message.role}-${
-                message.createdAt ?? Date.now()
-              }-${message.content?.toString().substring(0, 10)}`
+              `${message.role}-${message.createdAt ?? `${index}`}-${message.content?.toString().substring(0, 10)}`
             }
             data-slot="thread-content-item"
           >
@@ -171,8 +168,8 @@ const ThreadContentMessages = React.forwardRef<
                 <MessageContent
                   className={
                     message.role === "assistant"
-                      ? "text-primary font-sans"
-                      : "text-primary bg-container hover:bg-backdrop font-sans"
+                      ? "text-foreground font-sans"
+                      : "text-foreground bg-container hover:bg-backdrop font-sans"
                   }
                 />
                 <ToolcallInfo />
