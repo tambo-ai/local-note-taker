@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type TamboThreadMessage, useTambo } from "@tambo-ai/react";
 import { type VariantProps } from "class-variance-authority";
+import { FileText, Sparkles, FolderOpen } from "lucide-react";
 import * as React from "react";
 
 /**
@@ -105,6 +106,47 @@ const ThreadContent = React.forwardRef<HTMLDivElement, ThreadContentProps>(
 ThreadContent.displayName = "ThreadContent";
 
 /**
+ * Welcome state component shown when there are no messages
+ */
+const WelcomeState = () => (
+  <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+      <Sparkles className="w-10 h-10 text-white" />
+    </div>
+    <h2 className="text-2xl font-semibold text-slate-800 mb-2">
+      Welcome to Tambo Note Taker
+    </h2>
+    <p className="text-slate-500 text-center max-w-md mb-8">
+      Your AI-powered assistant for creating, organizing, and managing notes.
+      Start by typing a message below or try one of the suggestions.
+    </p>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg">
+      <div className="flex flex-col items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
+          <FileText className="w-5 h-5 text-blue-600" />
+        </div>
+        <span className="text-sm font-medium text-slate-700">Create Notes</span>
+        <span className="text-xs text-slate-400 text-center">Capture your thoughts</span>
+      </div>
+      <div className="flex flex-col items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mb-2">
+          <FolderOpen className="w-5 h-5 text-emerald-600" />
+        </div>
+        <span className="text-sm font-medium text-slate-700">Organize</span>
+        <span className="text-xs text-slate-400 text-center">Structure your work</span>
+      </div>
+      <div className="flex flex-col items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
+          <Sparkles className="w-5 h-5 text-purple-600" />
+        </div>
+        <span className="text-sm font-medium text-slate-700">AI Assist</span>
+        <span className="text-xs text-slate-400 text-center">Get smart help</span>
+      </div>
+    </div>
+  </div>
+);
+
+/**
  * Props for the ThreadContentMessages component.
  * Extends standard HTMLDivElement attributes.
  */
@@ -130,6 +172,20 @@ const ThreadContentMessages = React.forwardRef<
   const filteredMessages = messages.filter(
     (message) => message.role !== "system" && !message.parentMessageId,
   );
+
+  // Show welcome state when there are no messages
+  if (filteredMessages.length === 0) {
+    return (
+      <div
+        ref={ref}
+        className={cn("flex flex-col gap-2 h-full", className)}
+        data-slot="thread-content-messages"
+        {...props}
+      >
+        <WelcomeState />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -335,7 +335,7 @@ const MessageSuggestionsList = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex space-x-2 overflow-x-auto pb-2 rounded-md bg-transparent min-h-[2.5rem]",
+        "flex flex-wrap gap-2 pb-2 rounded-md bg-transparent min-h-[2.5rem]",
         isGenerating ? "opacity-70" : "",
         className,
       )}
@@ -355,8 +355,9 @@ const MessageSuggestionsList = React.forwardRef<
             >
               <button
                 className={cn(
-                  "py-2 px-2.5 rounded-2xl text-xs transition-colors",
-                  "border border-flat",
+                  "py-2.5 px-4 rounded-xl text-sm transition-all duration-200",
+                  "border shadow-sm hover:shadow-md",
+                  "font-medium",
                   getSuggestionButtonClassName({
                     isGenerating,
                     isSelected: selectedSuggestionId === suggestion.id,
@@ -369,7 +370,7 @@ const MessageSuggestionsList = React.forwardRef<
                 data-suggestion-id={suggestion.id}
                 data-suggestion-index={index}
               >
-                <span className="font-medium">{suggestion.title}</span>
+                {suggestion.title}
               </button>
             </Tooltip>
           ))
@@ -377,10 +378,10 @@ const MessageSuggestionsList = React.forwardRef<
           placeholders.map((_, index) => (
             <div
               key={`placeholder-${index}`}
-              className="py-2 px-2.5 rounded-2xl text-xs border border-flat bg-muted/20 text-transparent animate-pulse"
+              className="py-2.5 px-4 rounded-xl text-sm border border-slate-200 bg-slate-100/50 text-transparent animate-pulse"
               data-placeholder-index={index}
             >
-              <span className="invisible">Placeholder</span>
+              <span className="invisible">Placeholder text</span>
             </div>
           ))}
     </div>
@@ -399,12 +400,12 @@ function getSuggestionButtonClassName({
   isSelected: boolean;
 }) {
   if (isGenerating) {
-    return "bg-muted/50 text-muted-foreground";
+    return "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed";
   }
   if (isSelected) {
-    return "bg-accent text-accent-foreground";
+    return "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100";
   }
-  return "bg-background hover:bg-accent hover:text-accent-foreground";
+  return "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 cursor-pointer";
 }
 
 export { MessageSuggestions, MessageSuggestionsList, MessageSuggestionsStatus };

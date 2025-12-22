@@ -233,16 +233,16 @@ export function FileSystemSidebar({ className }: FileSystemSidebarProps) {
         </div>
       )}
 
-      {/* Footer info */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-          {trackedFolders.length === 0
-            ? "No folders tracked"
-            : trackedFolders.length === 1
+      {/* Footer info - only show when there are tracked folders */}
+      {trackedFolders.length > 0 && (
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+            {trackedFolders.length === 1
               ? "1 folder tracked"
               : `${trackedFolders.length} folders tracked`}
-        </p>
-      </div>
+          </p>
+        </div>
+      )}
     </div>
   );
 }
