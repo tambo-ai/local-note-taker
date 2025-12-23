@@ -1,137 +1,118 @@
-import { ApiKeyCheck } from "@/components/ApiKeyCheck";
-import Image from "next/image";
+"use client";
 
-const KeyFilesSection = () => (
-  <div className="bg-white px-8 py-4">
-    <h2 className="text-xl font-semibold mb-4">How it works:</h2>
-    <ul className="space-y-4 text-gray-600">
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium">src/app/layout.tsx</code> - Main layout
-          with TamboProvider
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium font-mono">src/app/chat/page.tsx</code> -
-          Chat page with TamboProvider and MCP integration
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium font-mono">
-            src/app/interactables/page.tsx
-          </code>{" "}
-          - Interactive demo page with tools and components
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium font-mono">
-            src/components/tambo/message-thread-full.tsx
-          </code>{" "}
-          - Chat UI
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium font-mono">
-            src/components/tambo/graph.tsx
-          </code>{" "}
-          - A generative graph component
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span>📄</span>
-        <span>
-          <code className="font-medium font-mono">
-            src/services/population-stats.ts
-          </code>{" "}
-          - Example tool implementation with mock population data
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span className="text-blue-500">📄</span>
-        <span>
-          <code className="font-medium font-mono">src/lib/tambo.ts</code> -
-          Component and tool registration
-        </span>
-      </li>
-      <li className="flex items-start gap-2">
-        <span className="text-blue-500">📄</span>
-        <span>
-          <code className="font-medium font-mono">README.md</code> - For more
-          details check out the README
-        </span>
-      </li>
-    </ul>
-    <div className="flex gap-4 flex-wrap mt-4">
-      <a
-        href="https://docs.tambo.co"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="px-6 py-3 rounded-md font-medium transition-colors text-lg mt-4 border border-gray-300 hover:bg-gray-50"
-      >
-        View Docs
-      </a>
-      <a
-        href="https://tambo.co/dashboard"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="px-6 py-3 rounded-md font-medium transition-colors text-lg mt-4 border border-gray-300 hover:bg-gray-50"
-      >
-        Dashboard
-      </a>
-    </div>
-  </div>
-);
+import { FileSystemSidebar } from "@/components/file-system/file-system-sidebar";
+import { useMcpServers } from "@/components/tambo/mcp-config-modal";
+import { MessageThreadFull } from "@/components/tambo/message-thread-full";
+import { components, tools } from "@/lib/tambo";
+import { getResource, listResources } from "@/services/file-resources";
+import { TamboProvider } from "@tambo-ai/react";
+
+const TAMBO_API_KEY = process.env.NEXT_PUBLIC_TAMBO_API_KEY?.trim();
+const TAMBO_URL = process.env.NEXT_PUBLIC_TAMBO_URL?.trim();
 
 export default function Home() {
+  // Load MCP server configurations
+  const mcpServers = useMcpServers();
+  const apiKey = TAMBO_API_KEY;
+
   return (
-    <div className="min-h-screen p-8 flex flex-col items-center justify-center font-[family-name:var(--font-geist-sans)]">
-      <main className="max-w-2xl w-full space-y-8">
-        <div className="flex flex-col items-center">
-          <a href="https://tambo.co" target="_blank" rel="noopener noreferrer">
-            <Image
-              src="/Octo-Icon.svg"
-              alt="Tambo AI Logo"
-              width={80}
-              height={80}
-              className="mb-4"
-            />
-          </a>
-          <h1 className="text-4xl text-center">tambo-ai chat template</h1>
-        </div>
-
-        <div className="w-full space-y-8">
-          <div className="bg-white px-8 py-4">
-            <h2 className="text-xl font-semibold mb-4">Setup Checklist</h2>
-            <ApiKeyCheck>
-              <div className="flex gap-4 flex-wrap">
-                <a
-                  href="/chat"
-                  className="px-6 py-3 rounded-md font-medium shadow-sm transition-colors text-lg mt-4 bg-[#7FFFC3] hover:bg-[#72e6b0] text-gray-800"
-                >
-                  Go to Chat →
-                </a>
-                <a
-                  href="/interactables"
-                  className="px-6 py-3 rounded-md font-medium shadow-sm transition-colors text-lg mt-4 bg-[#FFE17F] hover:bg-[#f5d570] text-gray-800"
-                >
-                  Interactables Demo →
-                </a>
-              </div>
-            </ApiKeyCheck>
+    <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <header className="flex-shrink-0 bg-white border-b border-slate-200 shadow-sm">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
+              <svg
+                className="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-800 tracking-tight">
+                Tambo Note Taker
+              </h1>
+              <p className="text-sm text-slate-500">
+                AI-powered notes and organization
+              </p>
+            </div>
           </div>
-
-          <KeyFilesSection />
+          <div className="flex items-center gap-2">
+            <span
+              className={`px-3 py-1 text-xs font-medium rounded-full ${
+                apiKey
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-800"
+              }`}
+              title={
+                apiKey
+                  ? "Tambo API key is set in your environment."
+                  : "Tambo API key is missing. Run npx tambo init and set NEXT_PUBLIC_TAMBO_API_KEY in .env.local."
+              }
+            >
+              {apiKey ? "Configured" : "Not configured"}
+            </span>
+          </div>
         </div>
-      </main>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* File System Sidebar */}
+        <FileSystemSidebar />
+
+        {apiKey ? (
+          <TamboProvider
+            apiKey={apiKey}
+            components={components}
+            tools={tools}
+            tamboUrl={TAMBO_URL}
+            listResources={listResources}
+            getResource={getResource}
+            mcpServers={mcpServers}
+            contextKey="tambo-template"
+          >
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="w-full max-w-4xl mx-auto h-full">
+                <MessageThreadFull />
+              </div>
+            </div>
+          </TamboProvider>
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-slate-800">
+                Set up your Tambo API key
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Run <code className="font-mono">npx tambo init</code> and set{" "}
+                <code className="font-mono">NEXT_PUBLIC_TAMBO_API_KEY</code> in{" "}
+                <code className="font-mono">.env.local</code>.
+              </p>
+              <p className="mt-3 text-sm text-slate-600">
+                You can also get an API key at{" "}
+                <a
+                  href="https://tambo.co/cli-auth"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-900 underline underline-offset-2"
+                >
+                  tambo.co/cli-auth
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

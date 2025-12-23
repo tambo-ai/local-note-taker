@@ -26,6 +26,7 @@ export default function InteractablesPage() {
       components={components}
       tools={tools}
       tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+      contextKey="interactables-demo"
     >
       <div className="flex h-screen bg-gray-50">
         {/* Chat Sidebar */}
@@ -53,10 +54,7 @@ export default function InteractablesPage() {
               </ScrollableMessageContainer>
 
               <div className="p-4 border-t border-gray-200">
-                <MessageInput
-                  contextKey="interactables-demo"
-                  variant="bordered"
-                >
+                <MessageInput variant="bordered">
                   <MessageInputTextarea placeholder="Update the settings..." />
                   <MessageInputToolbar>
                     <MessageInputSubmitButton />

@@ -900,19 +900,25 @@ const TextEditorInner = React.forwardRef<TamboEditor, TextEditorProps>(
             class:
               "mention resource inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground",
           },
+          /* eslint-disable react-hooks/refs */
+          // TipTap suggestion plugins run outside React; these refs are only read within plugin callbacks.
           suggestion: createResourceMentionConfig(
             stableSearchResources,
             handleResourceSelect,
             resourceSuggestionRef,
           ),
+          /* eslint-enable react-hooks/refs */
           renderLabel: ({ node }) => `@${(node.attrs.label as string) ?? ""}`,
         }),
         // Always register the "/" command extension for prompts
+        /* eslint-disable react-hooks/refs */
+        // TipTap suggestion plugins run outside React; these refs are only read within plugin callbacks.
         createPromptCommandExtension(
           stableSearchPrompts,
           handlePromptSelect,
           promptSuggestionRef,
         ),
+        /* eslint-enable react-hooks/refs */
       ],
       content: value,
       editable: !disabled,
