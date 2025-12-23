@@ -7,13 +7,13 @@ import { components, tools } from "@/lib/tambo";
 import { getResource, listResources } from "@/services/file-resources";
 import { TamboProvider } from "@tambo-ai/react";
 
-const TAMBO_API_KEY = process.env.NEXT_PUBLIC_TAMBO_API_KEY;
-const TAMBO_URL = process.env.NEXT_PUBLIC_TAMBO_URL;
+const TAMBO_API_KEY = process.env.NEXT_PUBLIC_TAMBO_API_KEY?.trim();
+const TAMBO_URL = process.env.NEXT_PUBLIC_TAMBO_URL?.trim();
 
 export default function Home() {
   // Load MCP server configurations
   const mcpServers = useMcpServers();
-  const apiKey = TAMBO_API_KEY?.trim();
+  const apiKey = TAMBO_API_KEY;
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
@@ -52,6 +52,11 @@ export default function Home() {
                   ? "bg-emerald-100 text-emerald-700"
                   : "bg-amber-100 text-amber-800"
               }`}
+              title={
+                apiKey
+                  ? "Tambo API key is set in your environment."
+                  : "Tambo API key is missing. Run npx tambo init and set NEXT_PUBLIC_TAMBO_API_KEY in .env.local."
+              }
             >
               {apiKey ? "Configured" : "Not configured"}
             </span>
