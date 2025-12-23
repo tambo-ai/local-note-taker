@@ -10,9 +10,11 @@ import { TamboProvider } from "@tambo-ai/react";
 export default function Home() {
   // Load MCP server configurations
   const mcpServers = useMcpServers();
+  const apiKey = process.env.NEXT_PUBLIC_TAMBO_API_KEY;
+  const isConfigured = Boolean(apiKey);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="flex-shrink-0 bg-white border-b border-slate-200 shadow-sm">
         <div className="px-6 py-4 flex items-center justify-between">
@@ -42,8 +44,14 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
-              Connected
+            <span
+              className={`px-3 py-1 text-xs font-medium rounded-full ${
+                isConfigured
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {isConfigured ? "Connected" : "Not configured"}
             </span>
           </div>
         </div>
@@ -54,22 +62,49 @@ export default function Home() {
         {/* File System Sidebar */}
         <FileSystemSidebar />
 
-        <TamboProvider
-          apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-          components={components}
-          tools={tools}
-          tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
-          listResources={listResources}
-          getResource={getResource}
-          mcpServers={mcpServers}
-          contextKey="tambo-template"
-        >
-          <div className="flex-1 flex flex-col overflow-hidden relative">
-            <div className="w-full max-w-4xl mx-auto h-full">
-              <MessageThreadFull />
+        {isConfigured ? (
+          <TamboProvider
+            apiKey={apiKey}
+            components={components}
+            tools={tools}
+            tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+            listResources={listResources}
+            getResource={getResource}
+            mcpServers={mcpServers}
+            contextKey="tambo-template"
+          >
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="w-full max-w-4xl mx-auto h-full">
+                <MessageThreadFull />
+              </div>
+            </div>
+          </TamboProvider>
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-slate-800">
+                Set up your Tambo API key
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Run <code className="font-mono">npx tambo init</code> and set{" "}
+                <code className="font-mono">NEXT_PUBLIC_TAMBO_API_KEY</code> in{" "}
+                <code className="font-mono">.env.local</code>.
+              </p>
+              <p className="mt-3 text-sm text-slate-600">
+                You can also get an API key at{" "}
+                <a
+                  href="https://tambo.co/cli-auth"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-900 underline underline-offset-2"
+                >
+                  tambo.co/cli-auth
+                </a>
+                .
+              </p>
             </div>
           </div>
-        </TamboProvider>
+        )}
       </div>
     </div>
   );
