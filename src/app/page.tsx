@@ -7,10 +7,13 @@ import { components, tools } from "@/lib/tambo";
 import { getResource, listResources } from "@/services/file-resources";
 import { TamboProvider } from "@tambo-ai/react";
 
+const TAMBO_API_KEY = process.env.NEXT_PUBLIC_TAMBO_API_KEY;
+const TAMBO_URL = process.env.NEXT_PUBLIC_TAMBO_URL;
+
 export default function Home() {
   // Load MCP server configurations
   const mcpServers = useMcpServers();
-  const apiKey = process.env.NEXT_PUBLIC_TAMBO_API_KEY;
+  const apiKey = TAMBO_API_KEY?.trim();
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
@@ -66,7 +69,7 @@ export default function Home() {
             apiKey={apiKey}
             components={components}
             tools={tools}
-            tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+            tamboUrl={TAMBO_URL}
             listResources={listResources}
             getResource={getResource}
             mcpServers={mcpServers}
