@@ -11,7 +11,6 @@ export default function Home() {
   // Load MCP server configurations
   const mcpServers = useMcpServers();
   const apiKey = process.env.NEXT_PUBLIC_TAMBO_API_KEY;
-  const isConfigured = Boolean(apiKey);
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
@@ -46,12 +45,12 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span
               className={`px-3 py-1 text-xs font-medium rounded-full ${
-                isConfigured
+                apiKey
                   ? "bg-emerald-100 text-emerald-700"
                   : "bg-amber-100 text-amber-800"
               }`}
             >
-              {isConfigured ? "Connected" : "Not configured"}
+              {apiKey ? "Connected" : "Not configured"}
             </span>
           </div>
         </div>
@@ -62,7 +61,7 @@ export default function Home() {
         {/* File System Sidebar */}
         <FileSystemSidebar />
 
-        {isConfigured ? (
+        {apiKey ? (
           <TamboProvider
             apiKey={apiKey}
             components={components}
