@@ -26,6 +26,7 @@ export default function InteractablesPage() {
       components={components}
       tools={tools}
       tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+      contextKey="interactables-demo"
     >
       <div className="flex h-screen bg-gray-50">
         {/* Chat Sidebar */}
