@@ -50,7 +50,7 @@ export default function Home() {
                   : "bg-amber-100 text-amber-800"
               }`}
             >
-              {apiKey ? "Connected" : "Not configured"}
+              {apiKey ? "Configured" : "Not configured"}
             </span>
           </div>
         </div>

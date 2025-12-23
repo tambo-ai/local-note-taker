@@ -53,10 +53,7 @@ export default function InteractablesPage() {
               </ScrollableMessageContainer>
 
               <div className="p-4 border-t border-gray-200">
-                <MessageInput
-                  contextKey="interactables-demo"
-                  variant="bordered"
-                >
+                <MessageInput variant="bordered">
                   <MessageInputTextarea placeholder="Update the settings..." />
                   <MessageInputToolbar>
                     <MessageInputSubmitButton />
